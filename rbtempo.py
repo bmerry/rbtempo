@@ -26,45 +26,59 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
         return self.get_shell().props.shell_player.props.player
 
     def get_toolbar(self):
+        """Get the widget for the main toolbar. This is rather fragile, but
+        there doesn't seem to be a way to find the toolbar by name now that
+        Rhythmbox doesn't use GtkUIManager.
+        """
         return self.get_shell().props.shell_player.props.header.get_parent().get_parent()
 
     def tempo_changed(self, adj, user):
-        self.pitch_element.props.tempo = adj.get_value() * 0.01
+        # Convert delta percent to scale value
+        self.pitch_element.props.tempo = adj.get_value() * 0.01 + 1.0
 
     def create_tempo_scale(self):
-        tempo_adj = Gtk.Adjustment(value=100, lower=50, upper=250, step_increment=5, page_increment=10)
+        tempo_adj = Gtk.Adjustment(value=0, lower=-50, upper=200, step_increment=5, page_increment=10)
         tempo_adj.connect('value-changed', self.tempo_changed, None)
         tempo_scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL)
         tempo_scale.set_adjustment(tempo_adj)
         tempo_scale.set_size_request(100, -1)
         tempo_scale.set_digits(0)
         tempo_scale.set_value_pos(Gtk.PositionType.RIGHT)
-        tempo_scale.show()
-        item = Gtk.ToolItem.new()
-        item.add(tempo_scale)
-        item.show()
         self.tempo_adj = tempo_adj
-        return item
+        return tempo_scale
 
     def reset(self, button):
-        self.tempo_adj.set_value(100)
+        self.tempo_adj.set_value(0)
 
     def create_reset_button(self):
-        reset_button = Gtk.ToolButton.new(None, None)
-        reset_button.set_icon_name('edit-undo')
+        reset_button = Gtk.Button.new_from_icon_name('edit-undo', 3)
         reset_button.connect('clicked', self.reset)
         reset_button.show()
         return reset_button
 
+    def create_toolbox(self):
+        box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 3)
+        box.pack_start(self.create_tempo_scale(), True, True, 0)
+        box.pack_start(self.create_reset_button(), False, False, 0)
+        item = Gtk.ToolItem.new()
+        # These margins are based on Rhythmbox's UI description
+        item.set_margin_left(6)
+        item.set_margin_top(12)
+        item.set_margin_bottom(12)
+        item.add(box)
+        item.show_all()
+        return item
+
     def do_activate(self):
         """Plugin activation callback"""
-        toolbar = self.get_toolbar()
-        toolbar.insert(self.create_tempo_scale(), 2)
-        toolbar.insert(self.create_reset_button(), 3)
         self.pitch_element = Gst.ElementFactory.make("pitch", None)
         self.get_player().add_filter(self.pitch_element)
+        self.toolbox = self.create_toolbox()
+        self.get_toolbar().insert(self.toolbox, 2)
 
     def do_deactivate(self):
         """Plugin deactivation callback"""
+        self.get_toolbar().remove(self.toolbox)
         self.get_player().remove_filter(self.pitch_element)
+        del self.toolbox
         del self.pitch_element
