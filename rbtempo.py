@@ -16,6 +16,18 @@
 
 from gi.repository import GObject, GLib, Gio, Gtk, RB, Peas, Gst
 
+def find_widget_by_name(root, name):
+    """Recursively find the widget named `name` under root, returning
+    `None` if it could not be found."""
+    if Gtk.Buildable.get_name(root) == name:
+        return root
+    elif isinstance(root, Gtk.Container):
+        for child in root.get_children():
+            ans = find_widget_by_name(child, name)
+            if ans is not None:
+                return ans
+    return None
+
 class RBTempoPlugin(GObject.Object, Peas.Activatable):
     object = GObject.property(type=GObject.GObject)
 
@@ -26,11 +38,8 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
         return self.get_shell().props.shell_player.props.player
 
     def get_toolbar(self):
-        """Get the widget for the main toolbar. This is rather fragile, but
-        there doesn't seem to be a way to find the toolbar by name now that
-        Rhythmbox doesn't use GtkUIManager.
-        """
-        return self.get_shell().props.shell_player.props.header.get_parent().get_parent()
+        """Get the widget for the main toolbar."""
+        return find_widget_by_name(self.get_shell().props.window, 'main-toolbar')
 
     def tempo_changed(self, adj, user):
         # Convert delta percent to scale value
