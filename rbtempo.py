@@ -45,6 +45,9 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
         # Convert delta percent to scale value
         self.pitch_element.props.tempo = adj.get_value() * 0.01 + 1.0
 
+    def format_percent(self, scale, value):
+        return "{:+.0f}%".format(value)
+
     def create_tempo_scale(self):
         tempo_adj = Gtk.Adjustment(value=0, lower=-50, upper=200, step_increment=5, page_increment=10)
         tempo_adj.connect('value-changed', self.tempo_changed, None)
@@ -53,6 +56,7 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
         tempo_scale.set_size_request(100, -1)
         tempo_scale.set_digits(0)
         tempo_scale.set_value_pos(Gtk.PositionType.RIGHT)
+        tempo_scale.connect('format-value', self.format_percent)
         self.tempo_adj = tempo_adj
         return tempo_scale
 
