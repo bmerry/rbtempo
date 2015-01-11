@@ -1,0 +1,8 @@
+[Plugin]
+Loader=python3
+Module=rbtempo
+IAge=2
+Name=Tempo control
+Description=Provides a slider to speed up or slow down playback
+Authors=Bruce Merry <bmerry@gmail.com>
+Copyright=Copyright © 2015 Bruce Merry
