@@ -45,20 +45,22 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
         # Convert delta percent to scale value
         self.pitch_element.props.tempo = adj.get_value() * 0.01 + 1.0
 
-    def format_percent(self, scale, value):
-        return "{:+.0f}%".format(value)
+    def create_tempo_adj(self):
+        adj = Gtk.Adjustment(value=0, lower=-50, upper=200, step_increment=5, page_increment=10)
+        adj.connect('value-changed', self.tempo_changed, None)
+        return adj
 
-    def create_tempo_scale(self):
-        tempo_adj = Gtk.Adjustment(value=0, lower=-50, upper=200, step_increment=5, page_increment=10)
-        tempo_adj.connect('value-changed', self.tempo_changed, None)
-        tempo_scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL)
-        tempo_scale.set_adjustment(tempo_adj)
-        tempo_scale.set_size_request(100, -1)
-        tempo_scale.set_digits(0)
-        tempo_scale.set_value_pos(Gtk.PositionType.RIGHT)
-        tempo_scale.connect('format-value', self.format_percent)
-        self.tempo_adj = tempo_adj
-        return tempo_scale
+    def create_tempo_scale(self, adj):
+        scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL)
+        scale.set_adjustment(adj)
+        scale.set_size_request(100, -1)
+        scale.set_draw_value(False)
+        return scale
+
+    def create_tempo_spin(self, adj):
+        spin = Gtk.SpinButton.new(adj, 0, 0)
+        spin.set_width_chars(4)
+        return spin
 
     def reset(self, button):
         self.tempo_adj.set_value(0)
@@ -70,8 +72,10 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
         return reset_button
 
     def create_toolbox(self):
+        self.tempo_adj = self.create_tempo_adj()
         box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 3)
-        box.pack_start(self.create_tempo_scale(), True, True, 0)
+        box.pack_start(self.create_tempo_scale(self.tempo_adj), True, True, 0)
+        box.pack_start(self.create_tempo_spin(self.tempo_adj), False, False, 0)
         box.pack_start(self.create_reset_button(), False, False, 0)
         item = Gtk.ToolItem.new()
         # These margins are based on Rhythmbox's UI description
