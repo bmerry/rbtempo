@@ -16,6 +16,8 @@
 
 from gi.repository import GObject, GLib, Gio, Gtk, RB, Peas, Gst
 
+BACKEND = 'scaletempo'
+
 def find_widget_by_name(root, name):
     """Recursively find the widget named `name` under root, returning
     `None` if it could not be found."""
@@ -43,7 +45,22 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
 
     def tempo_changed(self, adj, user):
         # Convert delta percent to scale value
-        self.pitch_element.props.tempo = adj.get_value() * 0.01 + 1.0
+        tempo = adj.get_value() * 0.01 + 1.0
+        if BACKEND == 'scaletempo':
+            element = self.get_player().props.playbin
+            if element is None:
+                element = self.pitch_element
+            seek_type = Gst.SeekType.NONE
+            pos = 0
+            p = element.query_position(Gst.Format.TIME)
+            if p[0]:
+                seek_type = Gst.SeekType.SET
+                pos = p[1]
+            element.seek(tempo, Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
+                    seek_type, pos,
+                    Gst.SeekType.NONE, 0)
+        else:
+            self.pitch_element.props.tempo = tempo
 
     def create_tempo_adj(self):
         adj = Gtk.Adjustment(value=0, lower=-50, upper=200, step_increment=5, page_increment=10)
@@ -88,7 +105,7 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
 
     def do_activate(self):
         """Plugin activation callback"""
-        self.pitch_element = Gst.ElementFactory.make("pitch", None)
+        self.pitch_element = Gst.ElementFactory.make(BACKEND, None)
         self.get_player().add_filter(self.pitch_element)
         self.toolbox = self.create_toolbox()
         self.get_toolbar().insert(self.toolbox, 2)
