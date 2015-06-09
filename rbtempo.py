@@ -43,7 +43,10 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
 
     def tempo_changed(self, adj, user):
         # Convert delta percent to scale value
-        self.pitch_element.props.tempo = adj.get_value() * 0.01 + 1.0
+        if adj.get_value() != 0:
+            self.add_filter()
+        if self.pitch_element is not None:
+            self.pitch_element.props.tempo = adj.get_value() * 0.01 + 1.0
 
     def create_tempo_adj(self):
         adj = Gtk.Adjustment(value=0, lower=-50, upper=200, step_increment=5, page_increment=10)
@@ -63,6 +66,7 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
         return spin
 
     def reset(self, button):
+        self.remove_filter()
         self.tempo_adj.set_value(0)
 
     def create_reset_button(self):
@@ -86,16 +90,27 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
         item.show_all()
         return item
 
+    def add_filter(self):
+        """Add the filter to the player, if not already present"""
+        if self.pitch_element is None:
+            self.pitch_element = Gst.ElementFactory.make("pitch", None)
+            self.get_player().add_filter(self.pitch_element)
+
+    def remove_filter(self):
+        """Delete the filter if it is present"""
+        if self.pitch_element is not None:
+            self.get_player().remove_filter(self.pitch_element)
+            self.pitch_element = None
+
     def do_activate(self):
         """Plugin activation callback"""
-        self.pitch_element = Gst.ElementFactory.make("pitch", None)
-        self.get_player().add_filter(self.pitch_element)
+        self.pitch_element = None
         self.toolbox = self.create_toolbox()
         self.get_toolbar().insert(self.toolbox, 2)
 
     def do_deactivate(self):
         """Plugin deactivation callback"""
         self.get_toolbar().remove(self.toolbox)
-        self.get_player().remove_filter(self.pitch_element)
+        self.remove_filter()
         del self.toolbox
         del self.pitch_element
