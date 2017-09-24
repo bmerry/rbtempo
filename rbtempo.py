@@ -104,6 +104,7 @@ class RBTempoPlugin(GObject.Object, Peas.Activatable):
 
     def do_activate(self):
         """Plugin activation callback"""
+        Gst.init([])     # Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=788088
         self.pitch_element = None
         self.toolbox = self.create_toolbox()
         self.get_toolbar().insert(self.toolbox, 2)
