@@ -8,6 +8,11 @@ Installation
 ------------
 Simply copy the entire directory tree to the Rhythmbox plugins directory. For
 a local user on a UNIX-like system, this is ~/.local/share/rhythmbox/plugins.
+You will also need the gstreamer "bad" plugins e.g.,
+`libgstreamer-plugins-bad1.0-0` on Ubuntu 22.04.
+
+Apparently this plugin is not compatible with the Rhythmbox "alternative
+toolbar" plugin.
 
 Usage
 -----
